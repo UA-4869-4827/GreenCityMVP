@@ -3,9 +3,12 @@ package greencity.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import greencity.converters.UserArgumentResolver;
 import greencity.dto.habit.HabitAssignCustomPropertiesDto;
+import greencity.dto.habit.UserShoppingAndCustomShoppingListsDto;
 import greencity.dto.user.UserVO;
 import greencity.service.HabitAssignService;
 import greencity.service.UserService;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +20,7 @@ import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.security.Principal;
@@ -133,7 +137,6 @@ class HabitAssignControllerTest {
         );
     }
 
-    //    GET /habit/assign/allForCurrentUser
     @Test
     void testGetCurrentUserHabitAssignsByIdAndAcquired_whenCorrectUserAndLocale_returnsOkStatusCode() throws Exception {
         UserVO userVO = getUserVO();
@@ -152,5 +155,70 @@ class HabitAssignControllerTest {
         );
     }
 
+    @Test
+    void testGetUserShoppingAndCustomShoppingLists_whenCorrectDataProvided_returnsOkStatusCode() throws Exception {
+        Long habitAssignId = 1L;
+        UserVO userVO = getUserVO();
+        Locale locale = new Locale("en");
 
+        when(userService.findByEmail(principal.getName())).thenReturn(userVO);
+
+        mockMvc.perform(get(habitAssignLink + "/{habitAssignId}/allUserAndCustomList", habitAssignId)
+                        .principal(principal)
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+                .andExpect(status().isOk());
+
+        verify(habitAssignService).getUserShoppingAndCustomShoppingLists(
+                userVO.getId(),
+                habitAssignId,
+                locale.getLanguage()
+        );
+    }
+
+    @Test
+    void testUpdateUserAndCustomShoppingLists_whenCorrectDataProvided_returnsOkStatusCode() throws Exception {
+        Long habitAssignId = 1L;
+        UserVO userVO = getUserVO();
+        Locale locale = new Locale("en");
+
+        // Создаем JSON объект для отправки
+        JSONObject requestBody = new JSONObject();
+        requestBody.put("userShoppingListItemDto", new JSONArray()
+                .put(new JSONObject()
+                        .put("id", 1)
+                        .put("text", "String_1")
+                        .put("status", "ACTIVE")));
+        requestBody.put("customShoppingListItemDto", new JSONArray()
+                .put(new JSONObject()
+                        .put("id", 1)
+                        .put("text", "String_1")
+                        .put("status", "ACTIVE")));
+
+        ObjectMapper mapper = new ObjectMapper();
+        UserShoppingAndCustomShoppingListsDto dto = mapper.readValue(
+                requestBody.toString(),
+                UserShoppingAndCustomShoppingListsDto.class
+        );
+
+        when(userService.findByEmail(principal.getName())).thenReturn(userVO);
+
+        mockMvc.perform(put("/habit/assign/{habitAssignId}/allUserAndCustomList", habitAssignId)
+                        .principal(principal)
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody.toString()))
+                .andExpect(status().isOk());
+
+        verify(habitAssignService).fullUpdateUserAndCustomShoppingLists(
+                userVO.getId(),
+                habitAssignId,
+                dto,
+                locale.getLanguage()
+        );
+
+    }
+
+    //
 }
+
+
