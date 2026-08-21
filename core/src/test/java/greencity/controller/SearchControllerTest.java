@@ -4,43 +4,56 @@ import greencity.dto.PageableDto;
 import greencity.dto.search.SearchNewsDto;
 import greencity.dto.search.SearchResponseDto;
 import greencity.dto.user.EcoNewsAuthorDto;
-import greencity.service.LanguageService;
 import greencity.service.SearchService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
+import org.springframework.validation.Validator;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
-
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.ArgumentCaptor;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Locale;
+import static org.mockito.ArgumentMatchers.eq;
 
-@WebMvcTest(SearchController.class)
+
+@ExtendWith(MockitoExtension.class)
 public class SearchControllerTest {
     private static final String searchLink = "/search";
     private static final String searchEcoNewsLink = "/search/econews";
 
-    @MockBean
+    @InjectMocks
+    private SearchController searchController;
+    @Mock
     private SearchService searchService;
-    @MockBean
-    private LanguageService languageService;
-    @Autowired
+    @Mock
+    private Validator mockValidator;
+
     private MockMvc mock;
+
+    @BeforeEach
+    void setUp(){
+        mock = MockMvcBuilders
+                .standaloneSetup(searchController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setValidator(mockValidator)
+                .build();
+    }
 
     @Test
     void searchTest() throws Exception {
@@ -48,10 +61,10 @@ public class SearchControllerTest {
                 .ecoNews(List.of())
                 .countOfResults(0L)
                 .build();
+
         when(searchService.search("eco", "en"))
                 .thenReturn(responseDto);
-        when(languageService.findAllLanguageCodes())
-                .thenReturn(List.of("en", "uk", "cs"));
+
         mock.perform(get(searchLink)
                         .param("searchQuery", "eco")
                         .locale(Locale.ENGLISH))
@@ -71,7 +84,7 @@ public class SearchControllerTest {
                 ZonedDateTime.of(2026,8,18,12,0,0,0, ZoneId.of("Europe/Prague")),
                 List.of("eco"));
         PageableDto<SearchNewsDto> p = new PageableDto<>(List.of(sec), 1, 0, 1);
-        when(searchService.searchAllNews(any(Pageable.class), "eco", "en"))
+        when(searchService.searchAllNews(any(Pageable.class), eq("eco"), eq("en")))
                 .thenReturn(p);
         mock.perform(get(searchEcoNewsLink)
                 .param("searchQuery", "eco")
