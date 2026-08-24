@@ -70,6 +70,17 @@ class EcoNewsDtoRequestValidatorTest {
     }
 
     @Test
+    void isValid_throwsInvalidURLException_whenSourceHasInvalidUriSyntax() {
+        AddEcoNewsDtoRequest request = getAddEcoNewsDtoRequest();
+
+        request.setSource("http://example,com\\illegal character");
+        request.setTags(createTags(ValidationConstants.MAX_AMOUNT_OF_TAGS));
+
+        assertThrowsExactly(InvalidURLException.class, () ->
+                validator.isValid(request, null));
+    }
+
+    @Test
     void isValid_throwsNullPointerException_whenTagsListIsNull() {
         AddEcoNewsDtoRequest request = getAddEcoNewsDtoRequest();
 
