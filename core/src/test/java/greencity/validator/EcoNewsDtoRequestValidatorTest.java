@@ -70,6 +70,17 @@ class EcoNewsDtoRequestValidatorTest {
     }
 
     @Test
+    void isValid_throwsNullPointerException_whenTagsListIsNull() {
+        AddEcoNewsDtoRequest request = getAddEcoNewsDtoRequest();
+
+        request.setSource("https://eco-lavca.ua/");
+        request.setTags(null);
+
+        assertThrowsExactly(NullPointerException.class, () ->
+                validator.isValid(request, null));
+    }
+
+    @Test
     void isValid_throwsWrongCountOfTagsException_whenTagsListSizeExceedsMaxSize() {
         AddEcoNewsDtoRequest request = getAddEcoNewsDtoRequest();
 
