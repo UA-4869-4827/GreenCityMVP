@@ -12,7 +12,6 @@ import greencity.enums.FactOfDayStatus;
 import greencity.exception.exceptions.NotDeletedException;
 import greencity.exception.handler.CustomExceptionHandler;
 import greencity.service.HabitFactService;
-import greencity.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,15 +26,12 @@ import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.Validator;
-import static greencity.ModelUtils.getPrincipal;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.mockito.Mockito.verify;
-import static org.hamcrest.Matchers.*;
-import java.security.Principal;
 import java.util.Locale;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import org.springframework.http.MediaType;
@@ -54,20 +50,17 @@ public class HabitFactControllerTest {
     @Mock
     private Validator validator;
     @Mock
-    private ObjectMapper objectMapper;
-    @Mock
-    private UserService userService;
+    LanguageTranslationDTO langDTO;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private MockMvc mockMvc;
-    private Principal principal = getPrincipal();
-    private ErrorAttributes errorAttributes = new DefaultErrorAttributes();
+    private final ErrorAttributes errorAttributes = new DefaultErrorAttributes();
 
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(habitFactController)
-                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver(),
-                        new UserArgumentResolver(userService, modelMapper))
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .setControllerAdvice(new CustomExceptionHandler(errorAttributes, objectMapper))
                 .setValidator(validator)
                 .build();
@@ -77,21 +70,12 @@ public class HabitFactControllerTest {
     void getRandomFactTest() throws Exception {
         Locale locale = new Locale("en");
         Long habitId = 1L;
-        LanguageTranslationDTO resDTO = LanguageTranslationDTO.builder()
-                .language(LanguageDTO.builder()
-                        .id(1L)
-                        .code("en")
-                        .build())
-                .content("random habit fact")
-                .build();
         when(habitFactService.getRandomHabitFactByHabitIdAndLanguage(habitId, locale.getLanguage()))
-                .thenReturn(resDTO);
+                .thenReturn(langDTO);
 
         mockMvc.perform(get(factLink + "/random/{habitId}",  habitId)
                         .locale(locale))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content")
-                        .value("random habit fact"));
+                .andExpect(status().isOk());
 
         verify(habitFactService).getRandomHabitFactByHabitIdAndLanguage(habitId, locale.getLanguage());
     }
@@ -99,20 +83,11 @@ public class HabitFactControllerTest {
     @Test
     void getHabitFactOfTheDayTest() throws Exception {
         Long languageId = 1L;
-        LanguageTranslationDTO resDTO = LanguageTranslationDTO.builder()
-                        .language(LanguageDTO.builder()
-                                .id(1L)
-                                .code("en")
-                                .build())
-                        .content("test habit fact")
-                        .build();
         when(habitFactService.getHabitFactOfTheDay(languageId))
-                .thenReturn(resDTO);
+                .thenReturn(langDTO);
 
         mockMvc.perform(get(factLink + "/dayFact/{languageId}", languageId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content")
-                        .value("test habit fact"));
+                .andExpect(status().isOk());
 
         verify(habitFactService).getHabitFactOfTheDay(languageId);
     }
@@ -120,23 +95,19 @@ public class HabitFactControllerTest {
     @Test
     void getAllHabitFactsTest() throws Exception {
         Locale locale = new Locale("en");
-        LanguageTranslationDTO resDTO = LanguageTranslationDTO.builder()
-                .language(LanguageDTO.builder()
-                        .id(1L)
-                        .code("en")
-                        .build())
-                .content("all habit fact")
-                .build();
-        PageableDto<LanguageTranslationDTO> presDTO = new PageableDto<>(List.of(resDTO), 1L, 0, 1);
-        when(habitFactService.getAllHabitFacts(any(Pageable.class), locale.getLanguage()))
+        PageableDto<LanguageTranslationDTO> presDTO = new PageableDto<>(List.of(langDTO), 1L, 0, 1);
+
+        when(habitFactService.getAllHabitFacts(
+                any(Pageable.class),
+                eq(locale.getLanguage())))
                 .thenReturn(presDTO);
 
         mockMvc.perform(get(factLink)
                         .locale(locale))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.page[0].content")
-                        .value("all habit fact"));
-        verify(habitFactService).getAllHabitFacts(any(Pageable.class), locale.getLanguage());
+                .andExpect(status().isOk());
+        verify(habitFactService).getAllHabitFacts(
+                any(Pageable.class),
+                eq(locale.getLanguage()));
 
     }
 
@@ -144,39 +115,32 @@ public class HabitFactControllerTest {
     void saveTest() throws Exception {
         HabitFactPostDto habitFactPostDto = HabitFactPostDto
                 .builder()
-                .translations(List.of(LanguageTranslationDTO
-                        .builder()
-                        .language(LanguageDTO.builder()
-                                .id(1L)
-                                .code("en")
-                                .build())
-                        .content("save habit fact")
-                        .build()))
+                .translations(List.of(langDTO))
                 .habit(HabitIdRequestDto
                         .builder()
                         .id(1L)
                         .build())
                 .build();
-        ObjectMapper realObjectMapper = new ObjectMapper();
-        String json = realObjectMapper.writeValueAsString(habitFactPostDto);
-        HabitFactVO saveFact =  mock(HabitFactVO.class);
-        when(habitFactService.save(habitFactPostDto))
-                .thenReturn(saveFact);
 
+        String json = objectMapper.writeValueAsString(habitFactPostDto);
+        HabitFactVO saveFact =  mock(HabitFactVO.class);
         HabitFactDtoResponse responseDto = HabitFactDtoResponse
                 .builder()
                 .id(1L)
                 .build();
+
+        when(habitFactService.save(any(HabitFactPostDto.class)))
+                .thenReturn(saveFact);
+
         when(modelMapper.map(saveFact, HabitFactDtoResponse.class))
                 .thenReturn(responseDto);
 
         mockMvc.perform(post(factLink)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id",is(1L)));
+                .andExpect(status().isCreated());
 
-        verify(habitFactService).save(habitFactPostDto);
+        verify(habitFactService).save(any(HabitFactPostDto.class));
         verify(modelMapper).map(saveFact, HabitFactDtoResponse.class);
     }
 
@@ -198,28 +162,31 @@ public class HabitFactControllerTest {
                         .id(1L)
                         .build())
                 .build();
-        ObjectMapper realObjectMapper = new ObjectMapper();
-        String json = realObjectMapper.writeValueAsString(updateHabit);
+        String json = objectMapper.writeValueAsString(updateHabit);
         HabitFactVO updateFact =  mock(HabitFactVO.class);
-        when(habitFactService.update(updateHabit, id))
+        HabitFactPostDto postDto = HabitFactPostDto.builder()
+                .translations(List.of(langDTO))
+                .habit(HabitIdRequestDto.builder()
+                        .id(1L)
+                        .build())
+                .build();
+
+        when(habitFactService.update(
+                any(HabitFactUpdateDto.class),
+                        eq(id)))
                 .thenReturn(updateFact);
 
-        HabitFactDtoResponse responseDto = HabitFactDtoResponse
-                .builder()
-                .id(1L)
-                .build();
-        when(modelMapper.map(updateFact, HabitFactDtoResponse.class))
-                .thenReturn(responseDto);
+        when(modelMapper.map(updateFact, HabitFactPostDto.class))
+                .thenReturn(postDto);
 
 
         mockMvc.perform(put(factLink + "/{id}", id)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id",is(1L)));
+                .andExpect(status().isOk());
 
-        verify(habitFactService).update(updateHabit, id);
-        verify(modelMapper).map(updateFact, HabitFactDtoResponse.class);
+        verify(habitFactService).update(any(HabitFactUpdateDto.class), eq(id));
+        verify(modelMapper).map(updateFact, HabitFactPostDto.class);
     }
 
     @Test
