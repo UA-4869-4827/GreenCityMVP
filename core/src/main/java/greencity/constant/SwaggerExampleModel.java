@@ -14,19 +14,24 @@ public final class SwaggerExampleModel {
         + "\t</ul>\n"
         + "\t<pre>\n";
 
-    private static final String EXAMPLE =
-        "  \"image\": \"string\",\n"
-            + "  \"source\": \"https://example.org/\",\n"
-            + "  \"shortInfo\": \"string\",\n"
-            + "  \"tags\": [\n"
+    private static final String EXAMPLE_FOR_SAVE =
+            "\"tags\": [\n"
             + "    \"string\"\n"
             + "  ],\n"
-            + "  \"titleTranslation\":\n"
-            + "     {\"content\": \"string\",\n"
-            + "     \"languageCode\": \"string\"},\n"
-            + "  \"textTranslation\":\n"
-            + "     {\"content\": \"string\",\n"
-            + "     \"languageCode\": \"string\"}\n";
+                + "\"text\": \"string\",\n"
+            + "  \"title\":\n"
+            + "    \"string\",\n"
+            +"  \"source\": \"string\"\n";
+
+    private static final String EXAMPLE_FOR_UPDATE =
+
+                    "  \"tags\": [\n"
+                    + "    \"string\"\n"
+                    + "  ],\n"
+                    + "  \"content\": \"string\",\n"
+                    + "  \"title\":\"string\",\n"
+                    + "  \"source\": \"string\",\n"
+                    + "  \"text\": \"string\"\n";
 
     private static final String AFTER_EXAMPLE = "\t</pre>\n"
         + "</div>";
@@ -45,7 +50,7 @@ public final class SwaggerExampleModel {
             + IMAGE_DESCRIPTION
             + BEFORE_EXAMPLE
             + "{\n"
-            + EXAMPLE
+            + EXAMPLE_FOR_SAVE
             + "}\n"
             + AFTER_EXAMPLE;
     public static final String UPDATE_ECO_NEWS =
@@ -53,8 +58,8 @@ public final class SwaggerExampleModel {
             + IMAGE_DESCRIPTION
             + BEFORE_EXAMPLE
             + "{\n"
-            + "  \"id\": 0,\n"
-            + EXAMPLE
+            + "  \"id\": \"string\",\n"
+            + EXAMPLE_FOR_UPDATE
             + "}\n"
             + AFTER_EXAMPLE;
     public static final String ADD_EVENT = BEFORE_EXAMPLE
